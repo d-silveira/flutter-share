@@ -1,0 +1,29 @@
+name: share
+description: Flutter plugin for sharing content via the platform share UI, using
+  the ACTION_SEND intent on Android and UIActivityViewController on iOS.
+  Receiving ACTION_SEND + ACTION_SEND_MULTIPLE on Android
+version: 0.6.0
+author: Duarte Silveira
+homepage: https://github.com/d-silveira/flutter-share
+#author: Flutter Team <flutter-dev@googlegroups.com>
+#homepage: https://github.com/flutter/plugins/tree/master/packages/share
+
+flutter:
+  plugin:
+    androidPackage: io.flutter.plugins.share
+    iosPrefix: FLT
+    pluginClass: SharePlugin
+
+dependencies:
+  meta: ^1.0.5
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  mockito: ^2.2.3
+  flutter_test:
+    sdk: flutter
+
+environment:
+  sdk: ">=2.0.0-dev.28.0 <3.0.0"
+  flutter: ">=0.1.4 <2.0.0"
