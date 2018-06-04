@@ -30,6 +30,7 @@ class DemoAppState extends ReceiveShareState<DemoApp> {
 
   @override
   Widget build(BuildContext context) {
+	enableShareReceiving();
     return new MaterialApp(
       title: 'Share Plugin Demo',
       home: new Scaffold(

@@ -9,6 +9,7 @@ import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import io.flutter.app.FlutterActivity;
@@ -34,7 +35,9 @@ public class FlutterShareReceiverActivity extends FlutterActivity {
 	public static final String STREAM = "plugins.flutter.io/receiveshare";
 
 	private EventChannel.EventSink eventSink = null;
-	private boolean inited = false;
+	private boolean                inited    = false;
+	private List<Intent>           backlog   = new ArrayList<>();
+	private boolean                ignoring  = false;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -56,16 +59,23 @@ public class FlutterShareReceiverActivity extends FlutterActivity {
 			public void onListen(Object args, EventChannel.EventSink events) {
 				Log.i(getClass().getSimpleName(), "adding listener");
 				eventSink = events;
+				ignoring = false;
+				for (int i = 0; i < backlog.size(); i++) {
+					handleIntent(backlog.remove(i));
+				}
 			}
 
 			@Override
 			public void onCancel(Object args) {
 				Log.i(getClass().getSimpleName(), "cancelling listener");
+				ignoring = true;
 				eventSink = null;
 			}
 		});
 
 		inited = true;
+
+		handleIntent(getIntent());
 
 	}
 
@@ -94,6 +104,8 @@ public class FlutterShareReceiverActivity extends FlutterActivity {
 						params.put(TITLE, sharedTitle);
 					}
 					eventSink.success(params);
+				} else if (!ignoring && !backlog.contains(intent)) {
+					backlog.add(intent);
 				}
 			} else {
 				String sharedTitle = intent.getStringExtra(Intent.EXTRA_SUBJECT);
@@ -111,6 +123,8 @@ public class FlutterShareReceiverActivity extends FlutterActivity {
 						params.put(TEXT, intent.getStringExtra(Intent.EXTRA_TEXT));
 					}
 					eventSink.success(params);
+				} else if (!ignoring && !backlog.contains(intent)) {
+					backlog.add(intent);
 				}
 			}
 
@@ -125,6 +139,8 @@ public class FlutterShareReceiverActivity extends FlutterActivity {
 					params.put(Integer.toString(i), uris.get(i).toString());
 				}
 				eventSink.success(params);
+			} else if (!ignoring && !backlog.contains(intent)) {
+				backlog.add(intent);
 			}
 
 		}

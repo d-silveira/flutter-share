@@ -16,7 +16,7 @@ class ShareType {
   static const ShareType TYPE_FILE = const ShareType._internal("*/*");
 
   static List<ShareType> values() {
-    List values = List<ShareType>();
+    List values = new List<ShareType>();
     values.add(TYPE_PLAIN_TEXT);
     values.add(TYPE_IMAGE);
     values.add(TYPE_FILE);
