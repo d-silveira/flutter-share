@@ -36,6 +36,8 @@ and then call `.share(Rect sharePositionOrigin)`
 import 'package:share/receive_share_state.dart';
 ```
  and then in your StatefulWidget replace your `extends State<T>` with `extends ReceiveShareState<T>` and implement your mandatory `@override void receiveShare(Share) { }` where you'll receive your shares.
+ 
+ finally call ``enableShareReceiving();`` in your initState().
 
 That's it!
 
