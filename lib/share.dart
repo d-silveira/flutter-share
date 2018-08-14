@@ -101,10 +101,28 @@ class Share {
        this.text = '',
        this.path = '';
 
-  // ignore: missing_return
+
   static Share fromReceived(Map received) {
     assert(received.containsKey(TYPE));
     ShareType type = ShareType.fromMimeType(received[TYPE]);
+    if (received.containsKey(IS_MULTIPLE)) {
+      List<Share> receivedShares = new List();
+      for (var i = 0; i < received.length-2; i++) {
+        receivedShares.add(Share.file(path: received["$i"]));
+      }
+      if (received.containsKey(TITLE)) {
+        return Share.multiple(mimeType: type, title: received[TITLE], shares: receivedShares);
+      } else {
+        return Share.multiple(mimeType: type, shares: receivedShares);
+      }
+    } else {
+      return _fromReceivedSingle(received, type);
+    }
+
+  }
+
+  // ignore: missing_return
+  static Share _fromReceivedSingle(Map received, ShareType type) {
     switch (type) {
       case ShareType.TYPE_PLAIN_TEXT:
         if (received.containsKey(TITLE)) {
@@ -142,6 +160,7 @@ class Share {
         }
         break;
     }
+
   }
 
   /// [MethodChannel] used to communicate with the platform side.
