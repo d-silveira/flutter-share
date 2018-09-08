@@ -20,10 +20,10 @@ dependencies:
     sdk: flutter
 
 dev_dependencies:
-  mockito: ^2.2.3
+  mockito: ^3.0.0
   flutter_test:
     sdk: flutter
 
 environment:
   sdk: ">=2.0.0-dev.28.0 <3.0.0"
-  flutter: ">=0.1.4 <2.0.0"
+  flutter: ">=0.1.4 <3.0.0"
