@@ -17,7 +17,7 @@ static NSString *const PLATFORM_CHANNEL = @"plugins.flutter.io/share";
     if ([@"share" isEqualToString:call.method]) {
       NSDictionary *arguments = [call arguments];
 
-      if ([arguments[@"text"] length] == 0) {
+        if ([arguments[@"text"] length] == 0 && arguments[@"is_multiple"] == false) {
         result(
             [FlutterError errorWithCode:@"error" message:@"Non-empty text expected" details:nil]);
         return;
@@ -47,14 +47,80 @@ static NSString *const PLATFORM_CHANNEL = @"plugins.flutter.io/share";
 + (void)share:(id)sharedItems
     withController:(UIViewController *)controller
           atSource:(CGRect)origin {
-  UIActivityViewController *activityViewController =
-      [[UIActivityViewController alloc] initWithActivityItems:@[ sharedItems ]
-                                        applicationActivities:nil];
-  activityViewController.popoverPresentationController.sourceView = controller.view;
-  if (!CGRectIsEmpty(origin)) {
-    activityViewController.popoverPresentationController.sourceRect = origin;
+  NSString *share_type = sharedItems[@"type"];
+    NSDictionary *dict = [NSDictionary dictionaryWithDictionary:sharedItems];
+  //NSLog(share_type);
+  UIActivityViewController *activityViewController = nil;
+  if ([share_type isEqualToString:@"image/*"])
+  {
+      NSMutableArray *items = [[NSMutableArray alloc]init];
+      //NSLog(path);
+      NSNumber *multiple = sharedItems[@"is_multiple"];
+      if ([multiple boolValue] == true){
+          int i = 0;
+          while ([[dict allKeys] containsObject:[@(i) stringValue]]) {
+              UIImage *image = [UIImage imageWithContentsOfFile:[dict objectForKey:[@(i) stringValue]]];
+              [items addObject:image];
+              i++;
+          }
+      }else{
+          NSString *path = sharedItems[@"path"];
+          UIImage *image = [UIImage imageWithContentsOfFile:path];
+          [items addObject:image];
+      }
+      activityViewController =
+            [[UIActivityViewController alloc] initWithActivityItems:items
+                                              applicationActivities:nil];
+  } 
+  else if ([share_type isEqualToString:@"*/*"])
+  {
+      NSMutableArray *items = [[NSMutableArray alloc]init];
+      //NSLog(path);
+      NSNumber *multiple = sharedItems[@"is_multiple"];
+      if ([multiple boolValue] == true){
+          int i = 0;
+          while ([[dict allKeys] containsObject:[@(i) stringValue]]) {
+              NSURL *url = [NSURL fileURLWithPath:[dict objectForKey:[@(i) stringValue]]];
+              [items addObject:url];
+              i++;
+          }
+      }else{
+          NSString *path = sharedItems[@"path"];
+          NSURL *url = [NSURL fileURLWithPath:path];
+          [items addObject:url];
+      }
+      activityViewController =
+            [[UIActivityViewController alloc] initWithActivityItems:items
+                                              applicationActivities:nil];
+  } 
+  else if ([share_type isEqualToString:@"text/plain"])
+  {
+      NSMutableArray *items = [[NSMutableArray alloc]init];
+      NSNumber *multiple = sharedItems[@"is_multiple"];
+      if ([multiple boolValue] == true){
+          int i = 0;
+          while ([[dict allKeys] containsObject:[@(i) stringValue]]) {
+              NSString *text = [dict objectForKey:[@(i) stringValue]];
+              [items addObject:text];
+              i++;
+          }
+      }else{
+          NSString *text = sharedItems[@"text"];
+          [items addObject:text];
+      }
+      activityViewController =
+          [[UIActivityViewController alloc] initWithActivityItems:items
+                                            applicationActivities:nil];
+  } 
+  else
+  {
+      NSLog(@"Unknown mimetype");
   }
-  [controller presentViewController:activityViewController animated:YES completion:nil];
+    activityViewController.popoverPresentationController.sourceView = controller.view;
+    if (!CGRectIsEmpty(origin)) {
+        activityViewController.popoverPresentationController.sourceRect = origin;
+    }
+    [controller presentViewController:activityViewController animated:YES completion:nil];
 }
 
 @end
