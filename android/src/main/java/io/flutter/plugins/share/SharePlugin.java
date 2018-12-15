@@ -29,6 +29,7 @@ public class SharePlugin implements MethodChannel.MethodCallHandler {
 	public static final  String TEXT        = "text";
 	public static final  String PATH        = "path";
 	public static final  String TYPE        = "type";
+	public static final  String PACKAGE     = "package";
 	public static final  String IS_MULTIPLE = "is_multiple";
 
 	public static enum ShareType{
@@ -76,18 +77,19 @@ public class SharePlugin implements MethodChannel.MethodCallHandler {
 				throw new IllegalArgumentException("Map argument expected");
 			}
 			// Android does not support showing the share sheet at a particular point on screen.
+			String packageName=call.hasArgument(PACKAGE) ? (String) call.argument(PACKAGE) : "";
 			if (call.argument(IS_MULTIPLE)) {
 				ArrayList<Uri> dataList = new ArrayList<>();
 				for (int i = 0; call.hasArgument(Integer.toString(i)); i++) {
 					dataList.add(Uri.parse((String)call.argument(Integer.toString(i))));
 				}
-				shareMultiple(dataList, (String) call.argument(TYPE), call.hasArgument(TITLE) ? (String) call.argument(TITLE) : "");
+				shareMultiple(dataList, (String) call.argument(TYPE), call.hasArgument(TITLE) ? (String) call.argument(TITLE) : "",packageName);
 			} else {
 				ShareType shareType = ShareType.fromMimeType((String) call.argument(TYPE));
 				if (ShareType.TYPE_PLAIN_TEXT.equals(shareType)) {
-					share((String) call.argument(TEXT), shareType, call.hasArgument(TITLE) ? (String) call.argument(TITLE) : "");
+					share((String) call.argument(TEXT), shareType, call.hasArgument(TITLE) ? (String) call.argument(TITLE) : "",packageName);
 				} else {
-					share((String) call.argument(PATH), (call.hasArgument(TEXT) ? (String) call.argument(TEXT) : ""), shareType, (call.hasArgument(TITLE) ? (String) call.argument(TITLE) : ""));
+					share((String) call.argument(PATH), (call.hasArgument(TEXT) ? (String) call.argument(TEXT) : ""), shareType, (call.hasArgument(TITLE) ? (String) call.argument(TITLE) : ""),packageName);
 				}
 			}
 			result.success(null);
@@ -96,11 +98,11 @@ public class SharePlugin implements MethodChannel.MethodCallHandler {
 		}
 	}
 
-	private void share (String text, ShareType shareType, String title) {
-		share("", text, shareType, title);
+	private void share (String text, ShareType shareType, String title,String packageName) {
+		share("", text, shareType, title,packageName);
 	}
 
-	private void share (String path, String text, ShareType shareType, String title) {
+	private void share (String path, String text, ShareType shareType, String title,String packageName) {
 		if (!ShareType.TYPE_PLAIN_TEXT.equals(shareType) && (path == null || path.isEmpty())) {
 			throw new IllegalArgumentException("Non-empty path expected");
 		} else if (ShareType.TYPE_PLAIN_TEXT.equals(shareType) && (text == null || text.isEmpty())) {
@@ -124,6 +126,10 @@ public class SharePlugin implements MethodChannel.MethodCallHandler {
 			shareIntent.putExtra(Intent.EXTRA_TEXT, text);
 		}
 		shareIntent.setType(shareType.toString());
+		if(!TextUtils.isEmpty(packageName)){
+			shareIntent.setPackage(packageName);
+		}
+
 		Intent chooserIntent = Intent.createChooser(shareIntent, null /* dialog title optional */);
 		if (mRegistrar.activity() != null) {
 			mRegistrar.activity().startActivity(chooserIntent);
@@ -133,7 +139,7 @@ public class SharePlugin implements MethodChannel.MethodCallHandler {
 		}
 	}
 
-	private void shareMultiple(ArrayList<Uri> dataList, String mimeType, String title) {
+	private void shareMultiple(ArrayList<Uri> dataList, String mimeType, String title,String packageName) {
 		if (dataList == null || dataList.isEmpty()) {
 			throw new IllegalArgumentException("Non-empty data expected");
 		}
@@ -145,6 +151,9 @@ public class SharePlugin implements MethodChannel.MethodCallHandler {
 		shareIntent.setAction(Intent.ACTION_SEND_MULTIPLE);
 		if (!TextUtils.isEmpty(title)) {
 			shareIntent.putExtra(Intent.EXTRA_SUBJECT, title);
+		}
+		if (!TextUtils.isEmpty(packageName)) {
+			shareIntent.setPackage(packageName);
 		}
 		shareIntent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, dataList);
 		shareIntent.setType(mimeType);
