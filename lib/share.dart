@@ -3,224 +3,168 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
-import 'dart:ui';
+package io.flutter.plugins.share;
 
-import 'package:flutter/services.dart';
-import 'package:meta/meta.dart' show visibleForTesting;
+import android.content.Intent;
+import android.net.Uri;
+import android.text.TextUtils;
 
-class ShareType {
+import java.util.ArrayList;
+import java.util.Map;
 
-  static const ShareType TYPE_PLAIN_TEXT = const ShareType._internal("text/plain");
-  static const ShareType TYPE_IMAGE = const ShareType._internal("image/*");
-  static const ShareType TYPE_FILE = const ShareType._internal("*/*");
+import io.flutter.plugin.common.MethodCall;
+import io.flutter.plugin.common.MethodChannel;
+import io.flutter.plugin.common.PluginRegistry.Registrar;
 
-  static List<ShareType> values() {
-    List values = new List<ShareType>();
-    values.add(TYPE_PLAIN_TEXT);
-    values.add(TYPE_IMAGE);
-    values.add(TYPE_FILE);
-    return values;
-  }
+/**
+ * Plugin method host for presenting a share sheet via Intent
+ *
+ * @author Duarte Silveira
+ * @version 1
+ * @since 25/05/18
+ */
+public class SharePlugin implements MethodChannel.MethodCallHandler {
 
-  final String _type;
+	private static final String CHANNEL     = "plugins.flutter.io/share";
+	public static final  String TITLE       = "title";
+	public static final  String TEXT        = "text";
+	public static final  String PATH        = "path";
+	public static final  String TYPE        = "type";
+	public static final  String PACKAGE     = "package";
+	public static final  String IS_MULTIPLE = "is_multiple";
 
-  const ShareType._internal(this._type);
+	public static enum ShareType{
+		TYPE_PLAIN_TEXT("text/plain"),
+		TYPE_IMAGE("image/*"),
+		TYPE_FILE("*/*");
 
-  static ShareType fromMimeType(String mimeType) {
-    for(ShareType shareType in values()) {
-      if (shareType.toString() == mimeType) {
-        return shareType;
-      }
-    }
-    return TYPE_FILE;
-  }
+		String mimeType;
 
-  @override
-  String toString() {
-    return _type;
-  }
+		ShareType(String mimeType) {
+			this.mimeType = mimeType;
+		}
 
-}
+		static ShareType fromMimeType(String mimeType) {
+			for (ShareType shareType : values()) {
+				if (shareType.mimeType.equals(mimeType)) {
+					return shareType;
+				}
+			}
+			return null;
+		}
 
-/// Plugin for summoning a platform share sheet.
-class Share {
+		@Override
+		public String toString() {
+			return mimeType;
+		}
+	}
 
-  static const String TITLE = "title";
-  static const String TEXT = "text";
-  static const String PATH = "path";
-  static const String TYPE = "type";
-  static const String IS_MULTIPLE = "is_multiple";
+	public static void registerWith(Registrar registrar) {
+		MethodChannel channel = new MethodChannel(registrar.messenger(), CHANNEL);
+		SharePlugin instance = new SharePlugin(registrar);
+		channel.setMethodCallHandler(instance);
+	}
 
-  final ShareType mimeType;
-  final String title;
-  final String text;
-  final String path;
-  final List<Share> shares;
+	private final Registrar mRegistrar;
 
-  Share.nullType() :
-    this.mimeType = null,
-    this.title = '',
-    this.text = '',
-    this.path = '',
-    this.shares = const[]
-  ;
+	private SharePlugin(Registrar registrar) {
+		this.mRegistrar = registrar;
+	}
 
-  const Share.plainText({
-    this.title,
-    this.text
-  }) : assert(text != null),
-       this.mimeType = ShareType.TYPE_PLAIN_TEXT,
-       this.path = '',
-       this.shares = const[];
+	@Override
+	public void onMethodCall(MethodCall call, MethodChannel.Result result) {
+		if (call.method.equals("share")) {
+			if (!(call.arguments instanceof Map)) {
+				throw new IllegalArgumentException("Map argument expected");
+			}
+			// Android does not support showing the share sheet at a particular point on screen.
+			String packageName=call.hasArgument(PACKAGE) ? (String) call.argument(PACKAGE) : "";
+			if (call.argument(IS_MULTIPLE)) {
+				ArrayList<Uri> dataList = new ArrayList<>();
+				for (int i = 0; call.hasArgument(Integer.toString(i)); i++) {
+					dataList.add(Uri.parse((String)call.argument(Integer.toString(i))));
+				}
+				shareMultiple(dataList, (String) call.argument(TYPE), call.hasArgument(TITLE) ? (String) call.argument(TITLE) : "",packageName);
+			} else {
+				ShareType shareType = ShareType.fromMimeType((String) call.argument(TYPE));
+				if (ShareType.TYPE_PLAIN_TEXT.equals(shareType)) {
+					share((String) call.argument(TEXT), shareType, call.hasArgument(TITLE) ? (String) call.argument(TITLE) : "",packageName);
+				} else {
+					share((String) call.argument(PATH), (call.hasArgument(TEXT) ? (String) call.argument(TEXT) : ""), shareType, (call.hasArgument(TITLE) ? (String) call.argument(TITLE) : ""),packageName);
+				}
+			}
+			result.success(null);
+		} else {
+			result.notImplemented();
+		}
+	}
 
-  const Share.file({
-    this.mimeType = ShareType.TYPE_FILE,
-    this.title,
-    this.path,
-    this.text = ''
-  }) : assert(mimeType != null),
-       assert(path != null),
-       this.shares = const[];
+	private void share (String text, ShareType shareType, String title,String packageName) {
+		share("", text, shareType, title,packageName);
+	}
 
-  const Share.image({
-    this.mimeType = ShareType.TYPE_IMAGE,
-    this.title,
-    this.path,
-    this.text = ''
-  }) : assert(mimeType != null),
-       assert(path != null),
-       this.shares = const[];
+	private void share (String path, String text, ShareType shareType, String title,String packageName) {
+		if (!ShareType.TYPE_PLAIN_TEXT.equals(shareType) && (path == null || path.isEmpty())) {
+			throw new IllegalArgumentException("Non-empty path expected");
+		} else if (ShareType.TYPE_PLAIN_TEXT.equals(shareType) && (text == null || text.isEmpty())) {
+			throw new IllegalArgumentException("Non-empty text expected");
+		}
+		if (shareType == null) {
+			throw new IllegalArgumentException("Non-empty mimeType expected");
+		}
 
-  const Share.multiple({
-    this.mimeType = ShareType.TYPE_FILE,
-    this.title,
-    this.shares
-  }) : assert(mimeType != null),
-       assert(shares != null),
-       this.text = '',
-       this.path = '';
+		Intent shareIntent = new Intent();
+		shareIntent.setAction(Intent.ACTION_SEND);
+		if (!TextUtils.isEmpty(title)) {
+			shareIntent.putExtra(Intent.EXTRA_SUBJECT, title);
+		}
+		if (!ShareType.TYPE_PLAIN_TEXT.equals(shareType)) {
+			shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse(path));
+			if (!TextUtils.isEmpty(text)) {
+				shareIntent.putExtra(Intent.EXTRA_TEXT, text);
+			}
+		} else {
+			shareIntent.putExtra(Intent.EXTRA_TEXT, text);
+		}
+		shareIntent.setType(shareType.toString());
+		if(!TextUtils.isEmpty(packageName)){
+			shareIntent.setPackage(packageName);
+		}
 
+		Intent chooserIntent = Intent.createChooser(shareIntent, null /* dialog title optional */);
+		if (mRegistrar.activity() != null) {
+			mRegistrar.activity().startActivity(chooserIntent);
+		} else {
+			chooserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			mRegistrar.context().startActivity(chooserIntent);
+		}
+	}
 
-  static Share fromReceived(Map received) {
-    assert(received.containsKey(TYPE));
-    ShareType type = ShareType.fromMimeType(received[TYPE]);
-    if (received.containsKey(IS_MULTIPLE)) {
-      List<Share> receivedShares = new List();
-      for (var i = 0; i < received.length-2; i++) {
-        receivedShares.add(Share.file(path: received["$i"]));
-      }
-      if (received.containsKey(TITLE)) {
-        return Share.multiple(mimeType: type, title: received[TITLE], shares: receivedShares);
-      } else {
-        return Share.multiple(mimeType: type, shares: receivedShares);
-      }
-    } else {
-      return _fromReceivedSingle(received, type);
-    }
+	private void shareMultiple(ArrayList<Uri> dataList, String mimeType, String title,String packageName) {
+		if (dataList == null || dataList.isEmpty()) {
+			throw new IllegalArgumentException("Non-empty data expected");
+		}
+		if (mimeType == null || mimeType.isEmpty()) {
+			throw new IllegalArgumentException("Non-empty mimeType expected");
+		}
 
-  }
-
-  // ignore: missing_return
-  static Share _fromReceivedSingle(Map received, ShareType type) {
-    switch (type) {
-      case ShareType.TYPE_PLAIN_TEXT:
-        if (received.containsKey(TITLE)) {
-          return Share.plainText(title: received[TITLE], text: received[TEXT]);
-        } else {
-          return Share.plainText(text: received[TEXT]);
-        }
-        break;
-
-      case ShareType.TYPE_IMAGE:
-        if (received.containsKey(TITLE)) {
-          if (received.containsKey(TEXT)) {
-            return Share.image(path: received[PATH],
-                title: received[TITLE],
-                text: received[TEXT]);
-          } else {
-            return Share.image(path: received[PATH], text: received[TITLE]);
-          }
-        } else {
-          return Share.image(path: received[PATH]);
-        }
-        break;
-
-      case ShareType.TYPE_FILE:
-        if (received.containsKey(TITLE)) {
-          if (received.containsKey(TEXT)) {
-            return Share.file(path: received[PATH],
-                title: received[TITLE],
-                text: received[TEXT]);
-          } else {
-            return Share.file(path: received[PATH], text: received[TITLE]);
-          }
-        } else {
-          return Share.file(path: received[PATH]);
-        }
-        break;
-    }
-
-  }
-
-  /// [MethodChannel] used to communicate with the platform side.
-  @visibleForTesting
-  static const MethodChannel channel = const MethodChannel('plugins.flutter.io/share');
-
-  bool get isNull => this.mimeType == null;
-
-  bool get isMultiple => this.shares.isNotEmpty;
-
-  Future<void> share({Rect sharePositionOrigin}) {
-    final Map<String, dynamic> params = <String, dynamic>{
-      TYPE: mimeType.toString(),
-      IS_MULTIPLE: isMultiple
-    };
-    if (sharePositionOrigin != null) {
-      params['originX'] = sharePositionOrigin.left;
-      params['originY'] = sharePositionOrigin.top;
-      params['originWidth'] = sharePositionOrigin.width;
-      params['originHeight'] = sharePositionOrigin.height;
-    }
-    if (title != null && title.isNotEmpty) {
-      params[TITLE] = title;
-    }
-
-    switch (mimeType) {
-      case ShareType.TYPE_PLAIN_TEXT:
-        if (isMultiple) {
-          for(var i = 0; i < shares.length; i++) {
-            params["$i"] = shares[i].text;
-          }
-        } else {
-          params[TEXT] = text;
-        }
-        break;
-
-      case ShareType.TYPE_IMAGE:
-      case ShareType.TYPE_FILE:
-        if (isMultiple) {
-          for (var i = 0; i < shares.length; i++) {
-            params["$i"] = shares[i].path;
-          }
-        } else {
-          params[PATH] = path;
-          if (text != null && text.isNotEmpty) {
-            params[TEXT] = text;
-          }
-        }
-        break;
-
-    }
-
-
-
-    return channel.invokeMethod('share', params);
-  }
-
-  @override
-  String toString() {
-    return 'Share{' + (this.isNull ? 'null }' : 'mimeType: $mimeType, title: $title, text: $text, path: $path, shares: $shares}');
-  }
+		Intent shareIntent = new Intent();
+		shareIntent.setAction(Intent.ACTION_SEND_MULTIPLE);
+		if (!TextUtils.isEmpty(title)) {
+			shareIntent.putExtra(Intent.EXTRA_SUBJECT, title);
+		}
+		if (!TextUtils.isEmpty(packageName)) {
+			shareIntent.setPackage(packageName);
+		}
+		shareIntent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, dataList);
+		shareIntent.setType(mimeType);
+		Intent chooserIntent = Intent.createChooser(shareIntent, null /* dialog title optional */);
+		if (mRegistrar.activity() != null) {
+			mRegistrar.activity().startActivity(chooserIntent);
+		} else {
+			chooserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			mRegistrar.context().startActivity(chooserIntent);
+		}
+	}
 
 }
