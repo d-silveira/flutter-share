@@ -50,7 +50,7 @@ class Share {
   static const String TEXT = "text";
   static const String PATH = "path";
   static const String TYPE = "type";
-  static const String PACKAGENAME = "packageName";
+  static const String PACKAGENAME = "package";
   static const String IS_MULTIPLE = "is_multiple";
 
   final ShareType mimeType;
