@@ -71,7 +71,7 @@ class Share {
 
   const Share.plainText({
     this.title,
-	this.package='',
+	this.package,
     this.text
   }) : assert(text != null),
        this.mimeType = ShareType.TYPE_PLAIN_TEXT,
@@ -82,7 +82,7 @@ class Share {
     this.mimeType = ShareType.TYPE_FILE,
     this.title,
     this.path,
-	this.package='',
+	this.package,
     this.text = ''
   }) : assert(mimeType != null),
        assert(path != null),
@@ -92,7 +92,7 @@ class Share {
     this.mimeType = ShareType.TYPE_IMAGE,
     this.title,
     this.path,
-	this.package='',
+	this.package,
     this.text = ''
   }) : assert(mimeType != null),
        assert(path != null),
