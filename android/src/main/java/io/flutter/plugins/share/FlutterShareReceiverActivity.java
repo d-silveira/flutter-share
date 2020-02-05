@@ -39,15 +39,6 @@ public class FlutterShareReceiverActivity extends FlutterActivity {
 	private List<Intent>           backlog   = new ArrayList<>();
 	private boolean                ignoring  = false;
 
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-
-		if (!inited) {
-			init(getFlutterView(), this);
-		}
-	}
-
 	public void init(BinaryMessenger flutterView, Context context) {
 		Log.i(getClass().getSimpleName(), "initializing eventChannel");
 
