@@ -44,7 +44,7 @@ public class FlutterShareReceiverActivity extends FlutterActivity {
 		super.onCreate(savedInstanceState);
 
 		if (!inited) {
-			init(getFlutterView(), this);
+			init(getFlutterEngine().getDartExecutor().getBinaryMessenger(), this);
 		}
 	}
 	
