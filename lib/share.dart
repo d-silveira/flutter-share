@@ -169,7 +169,7 @@ class Share {
 
   bool get isNull => this.mimeType == null;
 
-  bool get isMultiple => this.shares.isNotEmpty;
+  bool get isMultiple => this.shares.length > 0;
 
   Future<void> share({Rect sharePositionOrigin}) {
     final Map<String, dynamic> params = <String, dynamic>{
