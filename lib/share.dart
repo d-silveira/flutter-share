@@ -50,12 +50,14 @@ class Share {
   static const String TEXT = "text";
   static const String PATH = "path";
   static const String TYPE = "type";
+  static const String PACKAGENAME = "package";
   static const String IS_MULTIPLE = "is_multiple";
 
   final ShareType mimeType;
   final String title;
   final String text;
   final String path;
+  final String package;
   final List<Share> shares;
 
   Share.nullType() :
@@ -63,11 +65,13 @@ class Share {
     this.title = '',
     this.text = '',
     this.path = '',
+	this.package='',
     this.shares = const[]
   ;
 
   const Share.plainText({
     this.title,
+	this.package,
     this.text
   }) : assert(text != null),
        this.mimeType = ShareType.TYPE_PLAIN_TEXT,
@@ -78,6 +82,7 @@ class Share {
     this.mimeType = ShareType.TYPE_FILE,
     this.title,
     this.path,
+	this.package,
     this.text = ''
   }) : assert(mimeType != null),
        assert(path != null),
@@ -87,6 +92,7 @@ class Share {
     this.mimeType = ShareType.TYPE_IMAGE,
     this.title,
     this.path,
+	this.package,
     this.text = ''
   }) : assert(mimeType != null),
        assert(path != null),
@@ -95,6 +101,7 @@ class Share {
   const Share.multiple({
     this.mimeType = ShareType.TYPE_FILE,
     this.title,
+	this.package='',
     this.shares
   }) : assert(mimeType != null),
        assert(shares != null),
@@ -186,6 +193,10 @@ class Share {
       params[TITLE] = title;
     }
 
+	if (package != null && package.isNotEmpty) {
+      params[PACKAGENAME] = package;
+    }
+	
     switch (mimeType) {
       case ShareType.TYPE_PLAIN_TEXT:
         if (isMultiple) {
@@ -220,7 +231,7 @@ class Share {
 
   @override
   String toString() {
-    return 'Share{' + (this.isNull ? 'null }' : 'mimeType: $mimeType, title: $title, text: $text, path: $path, shares: $shares}');
+    return 'Share{' + (this.isNull ? 'null }' : 'mimeType: $mimeType, title: $title, text: $text, path: $path, shares: $shares,package:$package}');
   }
 
 }
