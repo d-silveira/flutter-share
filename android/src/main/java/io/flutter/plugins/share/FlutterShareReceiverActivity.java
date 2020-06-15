@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.flutter.app.FlutterActivity;
+import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.EventChannel;
 
@@ -44,10 +44,10 @@ public class FlutterShareReceiverActivity extends FlutterActivity {
 		super.onCreate(savedInstanceState);
 
 		if (!inited) {
-			init(getFlutterView(), this);
+			init(getFlutterEngine().getDartExecutor().getBinaryMessenger(), this);
 		}
 	}
-
+	
 	public void init(BinaryMessenger flutterView, Context context) {
 		Log.i(getClass().getSimpleName(), "initializing eventChannel");
 

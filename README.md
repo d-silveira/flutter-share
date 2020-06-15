@@ -5,6 +5,8 @@ A Flutter plugin to share content from your Flutter app via the platform's share
 Wraps the ACTION_SEND Intent, and ACTION_SEND + ACTION_SEND_MULTIPLE IntentReceiver on Android
  and UIActivityViewController on iOS.
 
+# this fork fixes v2 embedding
+
 ## Usage
 
 To use this plugin
@@ -13,7 +15,7 @@ To use this plugin
 ```
  share:
     git:
-     url: https://github.com/d-silveira/flutter-share.git
+     url: https://github.com/MperorM/flutter-share.git
 ```
  as a [dependency in your pubspec.yaml file](https://flutter.io/platform-plugins/).
 
